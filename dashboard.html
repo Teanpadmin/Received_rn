@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .loading { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">📊 Data Dashboard</h1>
+            <p class="text-gray-600">Filter and view your data with real-time updates</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">🔍 Filters</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ID</label>
+                    <input type="text" id="filterId" placeholder="Enter ID" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tracking</label>
+                    <input type="text" id="filterTracking" placeholder="Enter Tracking" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Seller</label>
+                    <input type="text" id="filterSeller" placeholder="Enter Seller" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Transport</label>
+                    <input type="text" id="filterTransport" placeholder="Enter Transport" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="fetchData()" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2">
+                    <span id="loadingIcon" class="hidden">⟳</span>
+                    Search Data
+                </button>
+                <button onclick="clearFilters()" 
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200">
+                    Clear Filters
+                </button>
+                <button onclick="printToPDF()" id="printBtn"
+                        class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    📄 Print PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-800">📋 Results</h2>
+                <div id="resultCount" class="text-sm text-gray-600"></div>
+            </div>
+            
+            <div id="loadingMessage" class="text-center py-8 hidden">
+                <div class="loading inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full"></div>
+                <p class="mt-2 text-gray-600">Loading data...</p>
+            </div>
+
+            <div id="errorMessage" class="text-center py-8 hidden">
+                <div class="text-red-500 text-6xl mb-4">⚠️</div>
+                <p class="text-red-600 font-medium">Failed to load data</p>
+                <p class="text-gray-600 text-sm mt-2">Please check your API URL and try again</p>
+            </div>
+
+            <div id="noDataMessage" class="text-center py-8 hidden">
+                <div class="text-gray-400 text-6xl mb-4">📭</div>
+                <p class="text-gray-600 font-medium">No data found</p>
+                <p class="text-gray-500 text-sm mt-2">Try adjusting your filters</p>
+            </div>
+
+            <div id="dataContainer" class="hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="border border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">ID</th>
+                                <th class="border border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Tracking</th>
+                                <th class="border border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Seller</th>
+                                <th class="border border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Transport</th>
+                                <th class="border border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Category</th>
+                                <th class="border border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Total Qty</th>
+                                <th class="border border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Timestamps</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Replace this URL with your actual Google Apps Script Web App URL
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxuJjMw94LJd0ulH4C_XMg-5vVemXw_dnsBUnSBD1mpki-VKlr-y22l0gNE8-Z9F3Jq6g/exec';
+
+        async function fetchData() {
+            const loadingIcon = document.getElementById('loadingIcon');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const noDataMessage = document.getElementById('noDataMessage');
+            const dataContainer = document.getElementById('dataContainer');
+            const resultCount = document.getElementById('resultCount');
+
+            // Show loading state
+            loadingIcon.classList.remove('hidden');
+            loadingIcon.classList.add('loading');
+            loadingMessage.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            noDataMessage.classList.add('hidden');
+            dataContainer.classList.add('hidden');
+
+            // Get filter values
+            const filters = {
+                id: document.getElementById('filterId').value.trim(),
+                tracking: document.getElementById('filterTracking').value.trim(),
+                seller: document.getElementById('filterSeller').value.trim(),
+                transport: document.getElementById('filterTransport').value.trim()
+            };
+
+            // Build query parameters
+            const params = new URLSearchParams();
+            Object.keys(filters).forEach(key => {
+                if (filters[key]) {
+                    params.append(key, filters[key]);
+                }
+            });
+
+            try {
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Hide loading
+                loadingMessage.classList.add('hidden');
+                loadingIcon.classList.add('hidden');
+                loadingIcon.classList.remove('loading');
+
+                if (data.length === 0) {
+                    noDataMessage.classList.remove('hidden');
+                    resultCount.textContent = '';
+                } else {
+                    displayData(data);
+                    resultCount.textContent = `${data.length} record${data.length !== 1 ? 's' : ''} found`;
+                }
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                loadingMessage.classList.add('hidden');
+                loadingIcon.classList.add('hidden');
+                loadingIcon.classList.remove('loading');
+                errorMessage.classList.remove('hidden');
+                resultCount.textContent = '';
+            }
+        }
+
+        function displayData(data) {
+            const tableBody = document.getElementById('dataTableBody');
+            const dataContainer = document.getElementById('dataContainer');
+
+            tableBody.innerHTML = '';
+
+            data.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                
+                // Format timestamps
+                const timestamps = Array.isArray(item.Timestamps) 
+                    ? item.Timestamps.slice(0, 3).join(', ') + (item.Timestamps.length > 3 ? '...' : '')
+                    : item.Timestamps || '';
+
+                row.innerHTML = `
+                    <td class="border border-gray-200 px-4 py-3">${item.ID || ''}</td>
+                    <td class="border border-gray-200 px-4 py-3">${item.Tracking || ''}</td>
+                    <td class="border border-gray-200 px-4 py-3">${item.Seller || ''}</td>
+                    <td class="border border-gray-200 px-4 py-3">${item.Transport || ''}</td>
+                    <td class="border border-gray-200 px-4 py-3">${item.Category || ''}</td>
+                    <td class="border border-gray-200 px-4 py-3 font-semibold text-blue-600">${item.TotalQty || 0}</td>
+                    <td class="border border-gray-200 px-4 py-3 text-sm text-gray-600">${timestamps}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+
+            dataContainer.classList.remove('hidden');
+        }
+
+        function clearFilters() {
+            document.getElementById('filterId').value = '';
+            document.getElementById('filterTracking').value = '';
+            document.getElementById('filterSeller').value = '';
+            document.getElementById('filterTransport').value = '';
+            
+            // Hide all result containers
+            document.getElementById('dataContainer').classList.add('hidden');
+            document.getElementById('noDataMessage').classList.add('hidden');
+            document.getElementById('errorMessage').classList.add('hidden');
+            document.getElementById('resultCount').textContent = '';
+        }
+
+        // Add enter key support for inputs
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    fetchData();
+                }
+            });
+        });
+
+        function printToPDF() {
+            const dataContainer = document.getElementById('dataContainer');
+            const tableBody = document.getElementById('dataTableBody');
+            
+            if (dataContainer.classList.contains('hidden') || !tableBody.children.length) {
+                alert('⚠️ No data to print! Please search for data first.');
+                return;
+            }
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // Add title
+                doc.setFontSize(20);
+                doc.setTextColor(40, 40, 40);
+                doc.text('Data Dashboard Report', 20, 20);
+
+                // Add date
+                doc.setFontSize(12);
+                doc.setTextColor(100, 100, 100);
+                const currentDate = new Date().toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                doc.text(`Generated on: ${currentDate}`, 20, 30);
+
+                // Add filters info
+                const filters = {
+                    ID: document.getElementById('filterId').value.trim(),
+                    Tracking: document.getElementById('filterTracking').value.trim(),
+                    Seller: document.getElementById('filterSeller').value.trim(),
+                    Transport: document.getElementById('filterTransport').value.trim()
+                };
+
+                const activeFilters = Object.entries(filters).filter(([key, value]) => value);
+                if (activeFilters.length > 0) {
+                    doc.setFontSize(10);
+                    doc.setTextColor(80, 80, 80);
+                    doc.text('Applied Filters:', 20, 40);
+                    activeFilters.forEach(([key, value], index) => {
+                        doc.text(`${key}: ${value}`, 25, 45 + (index * 5));
+                    });
+                }
+
+                // Prepare table data
+                const tableData = [];
+                const rows = tableBody.children;
+                
+                for (let i = 0; i < rows.length; i++) {
+                    const cells = rows[i].children;
+                    const rowData = [];
+                    for (let j = 0; j < cells.length; j++) {
+                        let cellText = cells[j].textContent.trim();
+                        // Limit long text for better PDF formatting
+                        if (cellText.length > 30) {
+                            cellText = cellText.substring(0, 27) + '...';
+                        }
+                        rowData.push(cellText);
+                    }
+                    tableData.push(rowData);
+                }
+
+                // Add table
+                doc.autoTable({
+                    head: [['ID', 'Tracking', 'Seller', 'Transport', 'Category', 'Total Qty', 'Timestamps']],
+                    body: tableData,
+                    startY: activeFilters.length > 0 ? 55 + (activeFilters.length * 5) : 45,
+                    styles: {
+                        fontSize: 8,
+                        cellPadding: 3,
+                    },
+                    headStyles: {
+                        fillColor: [59, 130, 246],
+                        textColor: 255,
+                        fontStyle: 'bold'
+                    },
+                    alternateRowStyles: {
+                        fillColor: [248, 250, 252]
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 20 }, // ID
+                        1: { cellWidth: 25 }, // Tracking
+                        2: { cellWidth: 25 }, // Seller
+                        3: { cellWidth: 25 }, // Transport
+                        4: { cellWidth: 25 }, // Category
+                        5: { cellWidth: 20 }, // Total Qty
+                        6: { cellWidth: 30 }  // Timestamps
+                    }
+                });
+
+                // Add footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(150, 150, 150);
+                    doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 10);
+                    doc.text('Generated by Data Dashboard', 20, doc.internal.pageSize.height - 10);
+                }
+
+                // Save the PDF
+                const fileName = `data-report-${new Date().toISOString().split('T')[0]}.pdf`;
+                doc.save(fileName);
+
+                // Show success message
+                setTimeout(() => {
+                    alert('✅ PDF generated successfully!');
+                }, 100);
+
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('❌ Error generating PDF. Please try again.');
+            }
+        }
+
+        // Load data on page load (without filters)
+        window.addEventListener('load', function() {
+            // You can uncomment the line below to auto-load data on page load
+            // fetchData();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96a495b6b5c8ce0f',t:'MTc1NDM3ODk4MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
