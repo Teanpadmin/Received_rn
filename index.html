@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Noto+Sans+Thai:wght@100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+  <title>Return Tracking System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+</head>
+<body>
+  <div class="container">
+    <h2>Return Tracking</h2>
+    <button id="togglePalletBtn" onclick="openPallet()">
+      🔓 เปิดรหัส Pallet
+    </button>
+    <p>ID :<span id="palletID"></span></p>
+     <h3>🚚 Trcaking List (<span id="dataCount">0</span>)</h3>
+    <input type="text" id="tracking" placeholder="Tracking">
+    <select id="seller">
+      <option value="Shopee">Shopee</option>
+      <option value="Lazada">Lazada</option>
+      <option value="Tiktok">Tiktok</option>
+      <option value="Amaze">Amaze</option>
+      <option value="Whatsapp">Whatsapp</option>
+    </select>
+    <select id="transport" style="display:none;">
+      <option value="Kerry">Kerry Express</option>
+      <option value="Flash">Flash Express</option>
+      <option value="J&T">J&T Express</option>
+      <option value="ไปรษณีย์ไทย">ไปรษณีย์ไทย</option>
+      <option value="DHL">DHL Express</option>
+      <option value="SCG">SCG Express</option>
+      <option value="Best">Best Express</option>
+      <option value="Ninja">Ninja Van</option>
+      <option value="CJ">CJ Logistics</option>
+      <option value="Shopee">Shopee Xpress (SPX)</option>
+      <option value="Lazada">Lazada Express (LEX)</option>
+      <option value="KEX">KEX (Kerry E-commerce)</option>
+      <option value="TP">TP Logistics</option>
+      <option value="BeeExpress">BeeExpress</option>
+      <option value="Alpha">Alpha Fast</option>
+      <option value="Speed-D">Speed-D (โดย CP ALL / 7-Eleven)</option>
+      <option value="Inter">Inter Express</option>
+      <option value="SK">SK Express</option>
+      <option value="AirAsia">AirAsia Move</option>
+      <option value="อื่นๆ">อื่นๆ</option>
+    </select>
+    <input type="hidden" id="qty" value="1">
+    <button onclick="saveData()" class="save-btn">Submit</button>
+    <div class="list-scroll">
+      <ul id="localData"></ul>
+    </div>
+  </div>
+  <!-- Modal สำหรับเลือกขนส่ง -->
+  <div id="modalTransport" class="modal">
+    <div class="modal-content">
+      <h4>เลือกขนส่ง</h4>
+      <select id="modalTransportSelect">
+      <option value="Kerry">Kerry Express</option>
+      <option value="Flash">Flash Express</option>
+      <option value="J&T">J&T Express</option>
+      <option value="ไปรษณีย์ไทย">ไปรษณีย์ไทย</option>
+      <option value="DHL">DHL Express</option>
+      <option value="SCG">SCG Express</option>
+      <option value="Best">Best Express</option>
+      <option value="Ninja">Ninja Van</option>
+      <option value="CJ">CJ Logistics</option>
+      <option value="Shopee">Shopee Xpress (SPX)</option>
+      <option value="Lazada">Lazada Express (LEX)</option>
+      <option value="KEX">KEX (Kerry E-commerce)</option>
+      <option value="TP">TP Logistics</option>
+      <option value="BeeExpress">BeeExpress</option>
+      <option value="Alpha">Alpha Fast</option>
+      <option value="Speed-D">Speed-D (โดย CP ALL / 7-Eleven)</option>
+      <option value="Inter">Inter Express</option>
+      <option value="SK">SK Express</option>
+      <option value="AirAsia">AirAsia Move</option>
+      <option value="อื่นๆ">อื่นๆ</option>
+      </select>
+      <button onclick="selectTransport()">ยืนยัน</button>
+    </div>
+  </div>
+  <!-- Alert Modal -->
+  <div id="alertModal" class="alert-modal">
+    <div class="alert-modal-content">
+      <div id="alertModalMsg">ข้อความแจ้งเตือน</div>
+      <button onclick="closeAlertModal()" class="alert-modal-btn">ตกลง</button>
+    </div>
+  </div>
+  <!-- Success Alert Modal -->
+<div class="success-alert-modal">
+  <div class="success-alert-modal-content">
+    <div class="success-modal-msg">บันทึกข้อมูลเรียบร้อยแล้ว!</div>
+    <button class="success-modal-btn">ตกลง</button>
+  </div>
+</div>
+  <!-- Edit Modal -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <h4>แก้ไขข้อมูล</h4>
+<!--     <input type="text" id="editSeller" placeholder="Seller"> -->
+    <select id="editSeller">
+      <option value="Shopee">Shopee</option>
+      <option value="Lazada">Lazada</option>
+      <option value="Tiktok">Tiktok</option>
+      <option value="Amaze">Amaze</option>
+      <option value="Whatsapp">Whatsapp</option>
+    </select>
+<!--     <input type="text" id="editTransport" placeholder="Transport"> -->
+     <select id="editTransport">
+      <option value="Kerry">Kerry Express</option>
+      <option value="Flash">Flash Express</option>
+      <option value="J&T">J&T Express</option>
+      <option value="ไปรษณีย์ไทย">ไปรษณีย์ไทย</option>
+      <option value="DHL">DHL Express</option>
+      <option value="SCG">SCG Express</option>
+      <option value="Best">Best Express</option>
+      <option value="Ninja">Ninja Van</option>
+      <option value="CJ">CJ Logistics</option>
+      <option value="Shopee">Shopee Xpress (SPX)</option>
+      <option value="Lazada">Lazada Express (LEX)</option>
+      <option value="KEX">KEX (Kerry E-commerce)</option>
+      <option value="TP">TP Logistics</option>
+      <option value="BeeExpress">BeeExpress</option>
+      <option value="Alpha">Alpha Fast</option>
+      <option value="Speed-D">Speed-D (โดย CP ALL / 7-Eleven)</option>
+      <option value="Inter">Inter Express</option>
+      <option value="SK">SK Express</option>
+      <option value="AirAsia">AirAsia Move</option>
+      <option value="อื่นๆ">อื่นๆ</option>
+      </select>
+    <div style="margin-top: 15px;">
+      <button onclick="confirmEdit()" class="save-btn">บันทึก</button>
+    </div>
+  </div>
+</div>
+  <script src="alert-modal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
+</body>
+</html>
